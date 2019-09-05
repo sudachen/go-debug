@@ -8,12 +8,15 @@ import (
 	"sync"
 )
 
+const tagDebug = "DEBUG: "
+const initText = "ERROR: Logging before logger.Init.\n"
+
 var debugEnabled = false
 var debugLog *log.Logger
 
 var mu = sync.Mutex{}
 
-func Enable(enable bool, logFile ...io.Writer) {
+func Enable(enable bool, flags int, logFile ...io.Writer) {
 	mu.Lock()
 	defer mu.Unlock()
 	if enable {
@@ -21,7 +24,10 @@ func Enable(enable bool, logFile ...io.Writer) {
 		if len(logFile) > 0 {
 			lf = logFile
 		}
-		debugLog = log.New(io.MultiWriter(lf...), "DEBUG:", log.Lmicroseconds | log.Lshortfile)
+		if flags == 0 {
+			flags = log.Ldate | log.Lmicroseconds | log.Lshortfile
+		}
+		debugLog = log.New(io.MultiWriter(lf...), tagDebug, flags)
 	}
 	debugEnabled = enable
 }
