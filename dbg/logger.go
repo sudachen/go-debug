@@ -9,20 +9,26 @@ import (
 )
 
 const tagDebug = "DEBUG: "
-const initText = "ERROR: Logging before logger.Init.\n"
 
 var debugEnabled = false
 var debugLog *log.Logger
 
 var mu = sync.Mutex{}
 
-func Enable(enable bool, flags int, logFile ...io.Writer) {
+func Enable(enable bool, flags int, verbose bool, logFile ...io.Writer) {
 	mu.Lock()
 	defer mu.Unlock()
 	if enable {
-		lf := []io.Writer{os.Stdout}
+		var lf []io.Writer
 		if len(logFile) > 0 {
-			lf = logFile
+			for _, f := range logFile {
+				if f != nil {
+					lf = append(lf, f)
+				}
+			}
+		}
+		if len(lf) == 0 || verbose {
+			lf = append([]io.Writer{os.Stdout}, lf...)
 		}
 		if flags == 0 {
 			flags = log.Ldate | log.Lmicroseconds | log.Lshortfile
@@ -36,8 +42,6 @@ func Enabled() bool {
 	return debugEnabled
 }
 
-// Debug uses the default logger and logs with the Info severity.
-// Arguments are handled in the manner of fmt.Print.
 func Debug(v ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -46,18 +50,14 @@ func Debug(v ...interface{}) {
 	}
 }
 
-// DebugDepth acts as Info but uses depth to determine which call frame to log.
-// DebugDepth(0, "msg") is the same as Info("msg").
 func DebugDepth(depth int, v ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
 	if debugEnabled && debugLog != nil {
-		_ = debugLog.Output(2 + depth, fmt.Sprint(v...))
+		_ = debugLog.Output(2+depth, fmt.Sprint(v...))
 	}
 }
 
-// Debugln uses the default logger and logs with the Info severity.
-// Arguments are handled in the manner of fmt.Println.
 func Debugln(v ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -66,8 +66,6 @@ func Debugln(v ...interface{}) {
 	}
 }
 
-// Debugf uses the default logger and logs with the Info severity.
-// Arguments are handled in the manner of fmt.Printf.
 func Debugf(format string, v ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -75,4 +73,3 @@ func Debugf(format string, v ...interface{}) {
 		_ = debugLog.Output(2, fmt.Sprintf(format, v...))
 	}
 }
-
